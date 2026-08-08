@@ -9,6 +9,7 @@ Sub-agent events are ignored.
 - `notify-pushover.sh` — Pushover notifier
 - `notify-telegram.sh` — Telegram notifier
 - `claude-settings-file-part.json` — Claude Code hooks
+- `Makefile` — build, install, and run shortcuts for the app
 - `app/` — Claude Notifier Manager menu bar app (credentials live in its Settings)
 
 Claude Code always calls:
@@ -51,10 +52,11 @@ brew install jq
 
 ### 2. Install the app
 
+From the repo root:
+
 ```bash
-cd app
-./install.sh
-open ~/Applications/"Claude Notifier Manager.app"
+make install
+make run
 ```
 
 ### 3. Add your credentials and install the notifier
@@ -165,21 +167,23 @@ which is what keeps the providers interchangeable.
 
 ### Install
 
-The built bundle is committed, so no toolchain is required:
+The built bundle is committed, so no toolchain is required. From the repo root:
 
 ```bash
-cd app
-./install.sh
-open ~/Applications/"Claude Notifier Manager.app"
+make install   # copies it to ~/Applications
+make run       # opens ~/Applications/"Claude Notifier Manager.app"
 ```
 
 To rebuild after changing the Swift source (needs the Swift toolchain from
 Xcode Command Line Tools):
 
 ```bash
-./build.sh              # arm64
-ARCHS="arm64 x86_64" ./build.sh   # universal, also runs on Intel Macs
+make build             # arm64
+make build-universal   # universal, also runs on Intel Macs
 ```
+
+`make install` never builds — it ships the bundle that is checked out. Run
+`make build` first if you changed the source.
 
 ### Use
 

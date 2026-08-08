@@ -160,15 +160,25 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        add(menu, "Turn Display Off Now", #selector(turnDisplayOffNow))
-        add(menu, "Stop", #selector(stop))
+        // Both items in this section carry a symbol: an image on one of them
+        // reserves the image column for the whole section anyway, so a lone icon
+        // would leave the other title indented next to empty space.
+        add(menu, "Turn Display Off Now", #selector(turnDisplayOffNow), symbol: "display")
+        add(menu, "Stop", #selector(stop), symbol: "stop.fill")
     }
 
     @discardableResult
-    private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
+    private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "",
+                     symbol: String? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
-        item.image = nil
+        if let symbol {
+            let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            image?.isTemplate = true
+            item.image = image
+        } else {
+            item.image = nil
+        }
         menu.addItem(item)
         return item
     }
