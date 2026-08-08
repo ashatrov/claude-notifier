@@ -1,0 +1,71 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/notifyer.sh question"
+          }
+        ]
+      }
+    ],
+
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/notifyer.sh permission"
+          }
+        ]
+      }
+    ],
+
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/notifyer.sh elicitation"
+          }
+        ]
+      }
+    ],
+
+    "Notification": [
+      {
+        "matcher": "agent_needs_input",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/notifyer.sh background_input"
+          }
+        ]
+      }
+    ],
+
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/notifyer.sh failure"
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/notifyer.sh done"
+          }
+        ]
+      }
+    ]
+  }
+}
