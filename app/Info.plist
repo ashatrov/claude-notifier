@@ -12,6 +12,10 @@
 	     read with `defaults read com.ashatrov.claude-notifier enabled`. -->
 	<key>CFBundleIdentifier</key>
 	<string>com.ashatrov.claude-notifier</string>
+	<!-- Resources/AppIcon.icns, drawn from the menu bar's own SF Symbol by
+	     ./make-icon.swift. -->
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

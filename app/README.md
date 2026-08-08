@@ -233,6 +233,23 @@ For a Mac with an Intel chip, build for both chips:
 ARCHS="arm64 x86_64" ./build.sh
 ```
 
+## 🎨 The icon
+
+The icon is a white cup on a warm rounded square. It is the same cup you see in
+the menu bar — the very same SF Symbol — so the two can never look different.
+
+It is already drawn and saved in git. You only need this if you want to change
+it:
+
+```bash
+./make-icon.swift
+```
+
+That writes `AppIcon.icns`. Then run `./build.sh` again.
+
+> 📝 macOS remembers old icons. If you still see the old one, run
+> `killall Dock`.
+
 ## 📦 Install
 
 The app is already built and saved in git. So you can just run:
@@ -387,6 +404,8 @@ app/
 ├── Info.plist                app name, ID, and "no Dock icon" flag
 ├── build.sh                  builds the app
 ├── install.sh                copies the app to ~/Applications
+├── make-icon.swift           draws the app icon
+├── AppIcon.icns              the app icon, saved in git
 ├── .gitignore                hides build leftovers from git
 │
 ├── Sources/ClaudeNotifierManager/

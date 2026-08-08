@@ -34,6 +34,10 @@ cp Info.plist "${BUNDLE}/Contents/Info.plist"
 # files afterwards invalidates it.
 cp ../notify-telegram.sh ../notify-pushover.sh "${BUNDLE}/Contents/Resources/"
 
+# Committed alongside the sources, so building needs no icon tooling. Run
+# ./make-icon.swift to redraw it.
+cp AppIcon.icns "${BUNDLE}/Contents/Resources/"
+
 # Ad-hoc signature. Required to execute on Apple Silicon, and it is embedded in
 # the Mach-O itself, so it survives being committed to and checked out of git.
 codesign --force --sign - "$BUNDLE"
