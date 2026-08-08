@@ -1,0 +1,3 @@
+# The built menu bar app bundle is committed so it can be installed without a
+# Swift toolchain. Keep git from touching its bytes or diffing them.
+"app/Claude Notifyer Manager.app/**" binary -diff
