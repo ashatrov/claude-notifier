@@ -14,6 +14,7 @@
 
     "PermissionRequest": [
       {
+        "matcher": "^(?!AskUserQuestion$)",
         "hooks": [
           {
             "type": "command",
