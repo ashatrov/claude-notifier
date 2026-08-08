@@ -15,6 +15,9 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private weak var remainingItem: NSMenuItem?
     private var menuTimer: Timer?
 
+    /// Kept alive so the window keeps its state between openings.
+    private var settingsWindow: SettingsWindowController?
+
     init(controller: UnattendedModeController) {
         self.controller = controller
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -44,6 +47,19 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     // MARK: - Menu
 
+    /// macOS 26 attaches a symbol to menu items whose *selector name* looks like
+    /// a standard action: anything resembling "settings" or "preferences" gets a
+    /// gear. The title is irrelevant — the method name alone decides it.
+    ///
+    /// That icon reserves an image column for its whole menu section, indenting
+    /// that section's titles while the sections above stay put, which knocked
+    /// Settings and Quit out of line with everything else.
+    ///
+    /// Clearing `item.image` does not help: the system runs its own decoration
+    /// pass *after* this method returns and paints the gear regardless. The only
+    /// reliable fix is to keep those words out of selector names, hence
+    /// `showConfigWindow`.
+    ///
     /// Rebuilt on every open, so the countdown starts from the real value rather
     /// than a cached one. Called before `menuWillOpen`.
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -56,6 +72,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        add(menu, "Settings…", #selector(showConfigWindow), key: ",")
         add(menu, "Quit Claude Notifyer Manager", #selector(quit), key: "q")
     }
 
@@ -130,6 +147,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
+        item.image = nil
         menu.addItem(item)
         return item
     }
@@ -198,6 +216,14 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc private func stop() {
         controller.stop()
+    }
+
+    /// Deliberately not named `openSettings` — see the note above
+    /// `menuNeedsUpdate`. macOS decorates menu items by selector name, and
+    /// anything containing "settings" or "preferences" gets a gear.
+    @objc private func showConfigWindow() {
+        if settingsWindow == nil { settingsWindow = SettingsWindowController() }
+        settingsWindow?.show()
     }
 
     @objc private func quit() {

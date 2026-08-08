@@ -8,10 +8,8 @@ Sub-agent events are ignored.
 
 - `notify-pushover.sh` — Pushover notifier
 - `notify-telegram.sh` — Telegram notifier
-- `pushover-credentials-to-keychain.sh` — saves Pushover credentials
-- `telegram-credentials-to-keychain.sh` — saves Telegram credentials
 - `claude-settings-file-part.json` — Claude Code hooks
-- `app/` — Claude Notifyer Manager menu bar app
+- `app/` — Claude Notifyer Manager menu bar app (credentials live in its Settings)
 
 Claude Code always calls:
 
@@ -40,38 +38,7 @@ You get a notification when the main Claude agent:
 brew install jq
 ```
 
-### 2. Configure a provider
-
-#### Pushover
-
-Create an application at https://pushover.net/.
-
-Then run:
-
-```bash
-zsh pushover-credentials-to-keychain.sh
-```
-
-Enter your:
-
-- User Key
-- Application API Token
-
-#### Telegram
-
-Create a bot with `@BotFather`.
-
-Then run:
-
-```bash
-zsh telegram-credentials-to-keychain.sh
-```
-
-Enter the bot token, send `/start` to the bot, and press Enter.
-
-The script gets the chat ID and saves everything to macOS Keychain.
-
-### 3. Install the notifier
+### 2. Install the notifier
 
 ```bash
 mkdir -p ~/.claude/hooks
@@ -95,7 +62,41 @@ Then:
 chmod 700 ~/.claude/hooks/notifyer.sh
 ```
 
-### 4. Configure Claude Code
+### 3. Install the app
+
+```bash
+cd app
+./install.sh
+open ~/Applications/"Claude Notifyer Manager.app"
+```
+
+### 4. Add your credentials
+
+Click the cup in the menu bar, then **Settings…**
+
+#### Pushover
+
+Create an application at https://pushover.net/, then paste:
+
+- User Key
+- Application API Token
+
+Press **Save**.
+
+#### Telegram
+
+Create a bot with `@BotFather`, then paste the bot token.
+
+Send `/start` to your bot and press **Get from bot**. The chat ID is fetched for
+you. Press **Save**.
+
+Both are stored in the macOS Keychain, in the same items the notifier scripts
+read.
+
+Then press **Send test**. It runs your real `~/.claude/hooks/notifyer.sh`, so if
+your phone buzzes, the whole chain works.
+
+### 5. Configure Claude Code
 
 Merge the `hooks` from:
 
@@ -113,7 +114,7 @@ into:
 >
 > If an event already exists, keep it and add the notifier entry next to it.
 
-### 5. Verify
+### 6. Verify
 
 Start Claude Code and run:
 
@@ -209,3 +210,7 @@ chmod 700 ~/.claude/hooks/notifyer.sh
 ```
 
 No change to `~/.claude/settings.json` is needed.
+
+Then open **Settings…** in the app and save that provider's credentials. Both
+providers' credentials can live in the Keychain at once — only the installed
+`notifyer.sh` decides which is used. Settings shows which one that is.

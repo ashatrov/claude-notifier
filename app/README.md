@@ -183,10 +183,27 @@ The app does not close. It waits in the menu bar for the next time you need it.
 **Stop** does all of the same steps, just sooner. **Quit** does them too, and
 then closes the app. So there is no way to end up with the phone still ringing.
 
-> 📝 If the app is killed the hard way (force quit, power cut), `caffeinate` may
-> keep running with no app to watch it. It still stops on its own when its time
-> runs out. And the next time you open the app, it sets `enabled = 0` first
-> thing.
+### If the app goes away
+
+| How it ends | Phone notifications |
+|:---|:---|
+| Quit from the menu, or ⌘Q | 🔕 turned off |
+| `kill` or `pkill` | 🔕 turned off |
+| Closing the terminal that started it | 🔕 turned off |
+| Restarting the Mac | 🔕 turned off |
+| **Force Quit**, `kill -9`, power cut | 🔔 **stay on** |
+
+Every normal way of closing the app cleans up. The app catches the "please exit"
+signals and runs the same shutdown as the Quit menu item.
+
+Force Quit is the exception. Nothing can catch it, so:
+
+- `caffeinate` keeps running with no app watching it. It still stops on its own
+  when its time runs out.
+- The phone keeps ringing on every Claude hook.
+
+**The fix is to open the app again.** It sets `enabled = 0` the moment it
+starts.
 
 Because they share only a flag, you can swap Telegram for Pushover and the app
 does not care. And the scripts still work if you never open the app — you just
@@ -290,6 +307,44 @@ screen is on, and the screen being on is what keeps the phone quiet. It turns to
 - **Turn Display Off Now** — turns the screen off. Does not change the time.
 - **Stop** — ends it now.
 
+### Settings
+
+Click the cup, then **Settings…**
+
+This is where you put your Telegram or Pushover credentials. It replaces the two
+old shell scripts.
+
+```text
+┌ Claude Notifyer Manager Settings ─────┐
+│  Provider:  [ Telegram | Pushover ]   │
+│                                       │
+│  Bot token:  [__________________]     │
+│  Chat ID:    [________] [Get from bot]│
+│                                       │
+│  Hook installed: Telegram             │
+│  ✓ Saved to keychain.                 │
+│                                       │
+│      [ Send test ]      [ Save ]      │
+└───────────────────────────────────────┘
+```
+
+**Telegram** — paste the bot token from `@BotFather`. Send `/start` to your bot,
+then press **Get from bot**. The app asks Telegram for your chat ID and fills it
+in. Press **Save**.
+
+**Pushover** — paste your user key and application API token. Press **Save**.
+
+**Send test** runs your real `~/.claude/hooks/notifyer.sh`. It is not a copy of
+the send code, it is the same script Claude Code runs. If your phone buzzes, the
+whole chain works.
+
+The line above the buttons tells you which notifier is installed and whether its
+credentials are saved.
+
+> 📝 Saved secrets show as `••••••••`. Leave a box empty to keep what is already
+> stored. The app never reads a saved secret back, so opening Settings never asks
+> for keychain permission.
+
 ### End
 
 It ends by itself when the time is up. The cup goes empty and the phone goes
@@ -315,7 +370,11 @@ app/
 │   ├── StatusBarController.swift     the cup icon and the menu
 │   ├── UnattendedModeController.swift  runs the timer and keeps the Mac awake
 │   ├── DisplayMonitor.swift          checks if the screen is off
-│   └── Preferences.swift             saves settings
+│   ├── Preferences.swift             saves settings
+│   ├── SettingsWindowController.swift  the Settings window
+│   ├── Keychain.swift                saves secrets with /usr/bin/security
+│   ├── TelegramAPI.swift             gets your chat ID from Telegram
+│   └── NotifierHook.swift            finds and runs ~/.claude/hooks/notifyer.sh
 │
 └── Claude Notifyer Manager.app/   the built app, saved in git so you need not build
 ```
