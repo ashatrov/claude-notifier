@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/notify-pusher.sh question"
+            "command": "$HOME/.claude/hooks/notifyer.sh question"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/notify-pusher.sh permission"
+            "command": "$HOME/.claude/hooks/notifyer.sh permission"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/notify-pusher.sh elicitation"
+            "command": "$HOME/.claude/hooks/notifyer.sh elicitation"
           }
         ]
       }
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/notify-pusher.sh background_input"
+            "command": "$HOME/.claude/hooks/notifyer.sh background_input"
           }
         ]
       }
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/notify-pusher.sh failure"
+            "command": "$HOME/.claude/hooks/notifyer.sh failure"
           }
         ]
       }
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/hooks/notify-pusher.sh done"
+            "command": "$HOME/.claude/hooks/notifyer.sh done"
           }
         ]
       }
