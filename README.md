@@ -8,7 +8,9 @@ Sub-agent events are ignored.
 
 - `notify-pushover.sh` — Pushover notifier
 - `notify-telegram.sh` — Telegram notifier
-- `claude-settings-file-part.json` — hooks to merge into `~/.claude/settings.json`
+- `pushover-credentials-to-keychain.sh` — saves Pushover credentials
+- `telegram-credentials-to-keychain.sh` — saves Telegram credentials
+- `claude-settings-file-part.json` — Claude Code hooks
 
 Claude Code always calls:
 
@@ -16,7 +18,7 @@ Claude Code always calls:
 ~/.claude/hooks/notifyer.sh
 ```
 
-Choose one notifier and copy it with this name.
+Choose a notifier and copy it with this name.
 
 ## 📲 Notifications
 
@@ -37,66 +39,38 @@ You get a notification when the main Claude agent:
 brew install jq
 ```
 
-### 2. Configure a notification provider
+### 2. Configure a provider
 
 #### Pushover
 
-Create an app at https://pushover.net/ and get:
+Create an application at https://pushover.net/.
+
+Then run:
+
+```bash
+zsh pushover-credentials-to-keychain.sh
+```
+
+Enter your:
 
 - User Key
 - Application API Token
 
-Store them in macOS Keychain:
-
-```bash
-security add-generic-password -U \
-    -a "$(id -un)" \
-    -s "claude-pushover-user" \
-    -w "YOUR_PUSHOVER_USER_KEY"
-
-security add-generic-password -U \
-    -a "$(id -un)" \
-    -s "claude-pushover-token" \
-    -w "YOUR_PUSHOVER_APP_TOKEN"
-```
-
 #### Telegram
 
-Create a bot with `@BotFather` and send `/start` to it.
+Create a bot with `@BotFather`.
 
-Store the bot token:
-
-```bash
-security add-generic-password -U \
-    -a "$(id -un)" \
-    -s "claude-telegram-bot-token" \
-    -w "YOUR_TELEGRAM_BOT_TOKEN"
-```
-
-Get your chat ID:
+Then run:
 
 ```bash
-BOT_TOKEN="$(security find-generic-password \
-    -a "$(id -un)" \
-    -s "claude-telegram-bot-token" \
-    -w)"
-
-curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getUpdates" \
-    | jq '.result[-1].message.chat.id'
+zsh telegram-credentials-to-keychain.sh
 ```
 
-Store it:
+Enter the bot token, send `/start` to the bot, and press Enter.
 
-```bash
-security add-generic-password -U \
-    -a "$(id -un)" \
-    -s "claude-telegram-chat-id" \
-    -w "YOUR_CHAT_ID"
-```
+The script gets the chat ID and saves everything to macOS Keychain.
 
 ### 3. Install the notifier
-
-Create the hooks directory:
 
 ```bash
 mkdir -p ~/.claude/hooks
@@ -134,9 +108,9 @@ into:
 ~/.claude/settings.json
 ```
 
-> 📝 Keep these hooks as separate entries from existing hooks.
+> 📝 Keep notifier hooks as separate entries from existing hooks.
 >
-> If an event already exists in your settings, keep it and add the notifier entry next to it. Do not replace the existing hook.
+> If an event already exists, keep it and add the notifier entry next to it.
 
 ### 5. Verify
 
@@ -150,9 +124,9 @@ Check that the hooks are registered.
 
 ## 🔄 Switch provider
 
-Just replace `notifyer.sh`.
+Replace only `notifyer.sh`.
 
-For example, switch to Telegram:
+Example:
 
 ```bash
 cp notify-telegram.sh ~/.claude/hooks/notifyer.sh
