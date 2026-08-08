@@ -1,5 +1,9 @@
 #!/bin/zsh
 
+ENABLED="$(defaults read com.ashatrov.claude-notifyer enabled 2>/dev/null || echo 0)"
+
+[[ "$ENABLED" == "1" ]] || exit 0
+
 INPUT="$(cat)"
 EVENT="${1:-}"
 
