@@ -5,7 +5,7 @@ import AppKit
 /// The status item shows an icon only — remaining time lives at the top of the
 /// dropdown instead, to keep the menu bar footprint as small as possible.
 final class StatusBarController: NSObject, NSMenuDelegate {
-    private static let presetHours: [Double] = [1, 2, 4, 8, 10]
+    private static let presetHours: [Double] = [1, 2, 4, 8, 12]
 
     private let statusItem: NSStatusItem
     private let controller: UnattendedModeController
@@ -39,7 +39,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         guard let button = statusItem.button else { return }
         let active = controller.isActive
         let symbol = active ? "cup.and.saucer.fill" : "cup.and.saucer"
-        let description = active ? "Claude Notifyer Manager, active" : "Claude Notifyer Manager, inactive"
+        let description = active ? "Claude Notifier Manager, active" : "Claude Notifier Manager, inactive"
         let image = NSImage(systemSymbolName: symbol, accessibilityDescription: description)
         image?.isTemplate = true
         button.image = image
@@ -71,9 +71,30 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             buildInactiveMenu(menu)
         }
 
+        addHookWarning(menu)
+
         menu.addItem(.separator())
         add(menu, "Settings…", #selector(showConfigWindow), key: ",")
-        add(menu, "Quit Claude Notifyer Manager", #selector(quit), key: "q")
+        add(menu, "Quit Claude Notifier Manager", #selector(quit), key: "q")
+    }
+
+    /// Says something only when the notifier needs attention. A hook that is
+    /// installed and current adds no row at all — the menu stays as short as it
+    /// has always been.
+    ///
+    /// Opens Settings rather than installing from here: the install button
+    /// belongs next to the provider picker that chooses what gets installed.
+    private func addHookWarning(_ menu: NSMenu) {
+        let title: String
+        switch NotifierHook.state() {
+        case .current: return
+        case .notInstalled: title = "⚠︎ Install notifier…"
+        case .outdated: title = "⚠︎ Update notifier…"
+        case .foreign: title = "⚠︎ Unrecognised notifier…"
+        }
+
+        menu.addItem(.separator())
+        add(menu, title, #selector(showConfigWindow))
     }
 
     /// Tick the countdown while the menu is on screen. Showing seconds without
@@ -108,7 +129,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     private func buildInactiveMenu(_ menu: NSMenu) {
-        addHeader(menu, "Claude Notifyer Manager")
+        addHeader(menu, "Claude Notifier Manager")
         menu.addItem(.separator())
 
         for hours in Self.presetHours {
@@ -124,17 +145,17 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         let toggle = add(menu, "Turn display off after start", #selector(toggleDisplayOff))
         toggle.state = Preferences.turnDisplayOffAfterStart ? .on : .off
 
-        let force = add(menu, "Force notifications", #selector(toggleForceNotifications))
+        let force = add(menu, "Notify even screen is on", #selector(toggleForceNotifications))
         force.state = Preferences.forceNotifications ? .on : .off
     }
 
     private func buildActiveMenu(_ menu: NSMenu) {
-        addHeader(menu, "Claude Notifyer Manager — Active")
+        addHeader(menu, "Claude Notifier Manager — Active")
         notificationsItem = addHeader(menu, Self.notificationsStatus())
         remainingItem = addHeader(menu, "Remaining: \(Self.formatRemaining(controller.remaining))")
         menu.addItem(.separator())
 
-        let force = add(menu, "Force notifications", #selector(toggleForceNotifications))
+        let force = add(menu, "Notify even screen is on", #selector(toggleForceNotifications))
         force.state = Preferences.forceNotifications ? .on : .off
 
         menu.addItem(.separator())

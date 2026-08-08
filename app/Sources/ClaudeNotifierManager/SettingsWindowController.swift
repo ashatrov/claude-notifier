@@ -34,12 +34,21 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     private let statusLabel = NSTextField(labelWithString: "")
     private let hookLabel = NSTextField(labelWithString: "")
+    private let installButton = NSButton(title: "Install", target: nil, action: nil)
     private let testButton = NSButton(title: "Send test", target: nil, action: nil)
     private let saveButton = NSButton(title: "Save", target: nil, action: nil)
 
     private var provider: Provider {
         Provider(rawValue: providerPicker.selectedSegment) ?? .telegram
     }
+
+    private var hookProvider: NotifierHook.Provider {
+        provider == .telegram ? .telegram : .pushover
+    }
+
+    /// Looked up once per opening rather than on every refresh: the check runs a
+    /// login shell, which is too slow to repeat every time the picker moves.
+    private var jqAvailable = true
 
     // MARK: - Construction
 
@@ -50,7 +59,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Claude Notifyer Manager Settings"
+        window.title = "Claude Notifier Manager Settings"
         window.isReleasedWhenClosed = false
         super.init(window: window)
 
@@ -62,6 +71,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         providerPicker.action = #selector(providerChanged)
         fetchChatIDButton.target = self
         fetchChatIDButton.action = #selector(fetchChatID)
+        installButton.target = self
+        installButton.action = #selector(installNotifier)
         testButton.target = self
         testButton.action = #selector(sendTest)
         saveButton.target = self
@@ -112,6 +123,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         hookLabel.textColor = .secondaryLabelColor
         wrap(hookLabel, width: Self.contentWidth)
         root.addArrangedSubview(hookLabel)
+        root.addArrangedSubview(installButton)
 
         statusLabel.font = .systemFont(ofSize: 11)
         wrap(statusLabel, width: Self.contentWidth)
@@ -159,8 +171,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     // MARK: - Presenting
 
     func show() {
+        jqAvailable = NotifierHook.hasJQ
         loadFromKeychain()
-        refreshHookLabel()
+        refreshHookStatus()
         statusLabel.stringValue = ""
         resizeToFit()
         window?.center()
@@ -194,16 +207,44 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         providerChanged()
     }
 
-    private func refreshHookLabel() {
-        guard NotifierHook.isInstalled else {
-            hookLabel.stringValue = "⚠︎ No notifier installed at ~/.claude/hooks/notifyer.sh"
-            return
+    /// Drives both the status line and the install button, so the two can never
+    /// disagree about what is on disk.
+    private func refreshHookStatus() {
+        let state = NotifierHook.state()
+
+        var parts: [String] = []
+        switch state {
+        case .notInstalled:
+            parts.append("⚠︎ No notifier installed at ~/.claude/hooks/notifier.sh")
+        case .foreign:
+            parts.append("⚠︎ Unrecognised script at ~/.claude/hooks/notifier.sh")
+        case .current(let installed), .outdated(let installed):
+            parts.append("Hook installed: \(installed.name)")
+            if case .outdated = state { parts.append("update available") }
+            let configured = installed.requiredServices.allSatisfy { Keychain.exists($0) }
+            parts.append(configured ? "credentials saved" : "credentials missing")
         }
-        let provider = NotifierHook.installedProvider()
-        let configured = provider.requiredServices.allSatisfy { Keychain.exists($0) }
-        hookLabel.stringValue = configured
-            ? "Hook installed: \(provider.name) · credentials saved"
-            : "Hook installed: \(provider.name) · credentials missing"
+
+        // The scripts pipe every hook payload through jq. Missing, they exit 0
+        // without a word, so nothing else here would ever hint at the cause.
+        if !jqAvailable { parts.append("⚠︎ jq not found — run: brew install jq") }
+
+        hookLabel.stringValue = parts.joined(separator: " · ")
+
+        installButton.isEnabled = true
+        switch state {
+        case .notInstalled:
+            installButton.title = "Install \(hookProvider.name)"
+        case .foreign:
+            installButton.title = "Replace…"
+        case .current(let installed) where installed == hookProvider:
+            installButton.title = "Installed"
+            installButton.isEnabled = false
+        case .outdated(let installed) where installed == hookProvider:
+            installButton.title = "Update"
+        case .current, .outdated:
+            installButton.title = "Switch to \(hookProvider.name)"
+        }
     }
 
     // MARK: - Actions
@@ -211,7 +252,44 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     @objc private func providerChanged() {
         telegramRows.isHidden = provider != .telegram
         pushoverRows.isHidden = provider != .pushover
+        // The button offers to install whatever the picker points at, so its
+        // title has to follow the picker.
+        refreshHookStatus()
         resizeToFit()
+    }
+
+    /// Writes the picked provider's bundled script over the hook.
+    ///
+    /// A script we do not recognise is someone's own work, so it is replaced
+    /// only after asking. Everything else — missing, stale, other provider —
+    /// goes straight through, since the app is the thing that put it there.
+    @objc private func installNotifier() {
+        if case .foreign = NotifierHook.state(), !confirmReplace() { return }
+
+        do {
+            try NotifierHook.install(hookProvider)
+            loadFromKeychain()
+            refreshHookStatus()
+            show(success: "Installed the \(hookProvider.name) notifier at ~/.claude/hooks/notifier.sh")
+        } catch {
+            show(error: error.localizedDescription)
+        }
+    }
+
+    private func confirmReplace() -> Bool {
+        // An LSUIElement app is not frontmost, so the alert would otherwise open
+        // behind whatever is — same reason as the Custom… dialog in the menu.
+        NSApp.activate(ignoringOtherApps: true)
+
+        let alert = NSAlert()
+        alert.messageText = "Replace the existing notifier?"
+        alert.informativeText = """
+            ~/.claude/hooks/notifier.sh was not installed by this app. \
+            Replacing it discards whatever is there now.
+            """
+        alert.addButton(withTitle: "Replace")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     /// The window is not resizable, so it must be told the size its content
@@ -264,7 +342,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         }
 
         loadFromKeychain()
-        refreshHookLabel()
+        refreshHookStatus()
         show(success: "Saved to keychain.")
     }
 

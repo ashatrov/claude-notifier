@@ -2,11 +2,12 @@ import Foundation
 
 /// Thin wrapper over `UserDefaults.standard`.
 ///
-/// The bundle identifier stays `com.ashatrov.claude-notifyer` even though the
-/// app is named "Claude Notifyer Manager" — it is the preferences domain the
-/// notifier hook scripts read, so renaming it would silently break them.
+/// The bundle identifier `com.ashatrov.claude-notifier` is the preferences
+/// domain the notifier hook scripts read. Changing it breaks them silently:
+/// the app would write one domain while the scripts read another, and nothing
+/// anywhere would report an error.
 ///
-/// These therefore land in `~/Library/Preferences/com.ashatrov.claude-notifyer.plist`
+/// These therefore land in `~/Library/Preferences/com.ashatrov.claude-notifier.plist`
 /// where plain `defaults read` finds them. That only holds while the app runs as
 /// a real, unsandboxed bundle — see README.
 enum Preferences {
@@ -29,7 +30,7 @@ enum Preferences {
 
     /// The flag the notifier hooks gate on:
     ///
-    ///     defaults read com.ashatrov.claude-notifyer enabled
+    ///     defaults read com.ashatrov.claude-notifier enabled
     ///
     /// True only while every display is asleep during an unattended session.
     static var enabled: Bool {

@@ -1,4 +1,4 @@
-# ☕ Claude Notifyer Manager
+# ☕ Claude Notifier Manager
 
 A small app that lives in the macOS menu bar.
 
@@ -34,14 +34,14 @@ time runs out or you press Stop.
 The app only sets one flag:
 
 ```bash
-defaults read com.ashatrov.claude-notifyer enabled
+defaults read com.ashatrov.claude-notifier enabled
 ```
 
 The scripts in the folder above read that flag and send the message.
 
-> 📝 The app is named "Claude Notifyer Manager" but its ID is still
-> `com.ashatrov.claude-notifyer`. That ID is where the flag is saved. Do not
-> change it, or the scripts will stop working.
+> 📝 `com.ashatrov.claude-notifier` is where the flag is saved. Do not change
+> it, or the scripts will stop working — and they will stop quietly, with no
+> error anywhere.
 
 ## 🗺️ How it works
 
@@ -55,7 +55,7 @@ The app writes it. The scripts read it.
      you click the cup and pick a time
                     │
                     ↓
-      Claude Notifyer Manager.app
+      Claude Notifier Manager.app
                     │
                     ├─ caffeinate ....... Mac stays awake
                     ├─ timer ............ ends when time is up
@@ -63,7 +63,7 @@ The app writes it. The scripts read it.
                     │
                     │ writes
                     ↓
-      com.ashatrov.claude-notifyer  enabled
+      com.ashatrov.claude-notifier  enabled
 
             screen off  →  enabled = 1
             screen on   →  enabled = 0
@@ -78,11 +78,11 @@ The app writes it. The scripts read it.
               hook fires
                     │
                     ↓
-      ~/.claude/hooks/notifyer.sh
+      ~/.claude/hooks/notifier.sh
                     │
                     │ reads
                     ↓
-      com.ashatrov.claude-notifyer  enabled
+      com.ashatrov.claude-notifier  enabled
                     │
             ┌───────┴───────┐
             ↓               ↓
@@ -119,12 +119,12 @@ goes quiet.
 The screen never changes the first column. Waking the screen does not stop
 `caffeinate`. The Mac stays awake until the time is up or you press Stop.
 
-### Force notifications
+### Notify even screen is on
 
 Sometimes you want the phone to ring while you are still at the Mac. Maybe you
 are reading, or in a meeting, and the Mac is on the desk next to you.
 
-Tick **Force notifications** in the menu. It skips the screen rule.
+Tick **Notify even screen is on** in the menu. It skips the screen rule.
 
 | `caffeinate` | Force | Screen | Phone notifications |
 |:---|:---|:---|:---|
@@ -225,7 +225,7 @@ Then:
 ./build.sh
 ```
 
-This makes `Claude Notifyer Manager.app` in this folder.
+This makes `Claude Notifier Manager.app` in this folder.
 
 For a Mac with an Intel chip, build for both chips:
 
@@ -248,10 +248,16 @@ No password. No admin rights.
 Then open it:
 
 ```bash
-open ~/Applications/"Claude Notifyer Manager.app"
+open ~/Applications/"Claude Notifier Manager.app"
 ```
 
 Quit the app first if it is already running. The script will tell you.
+
+```bash
+pkill -x ClaudeNotifierManager
+```
+
+See [Quit from the terminal](#quit-from-the-terminal).
 
 ## 🖱️ Use
 
@@ -268,7 +274,7 @@ Awake for 1 hour
 Awake for 2 hours
 Awake for 4 hours
 Awake for 8 hours
-Awake for 10 hours
+Awake for 12 hours
 Custom...
 ```
 
@@ -278,19 +284,19 @@ Below the times there are two tick boxes:
 
 - **Turn display off after start** — the screen goes off right away, so you can
   just walk away. On by default.
-- **Force notifications** — ring the phone even when the screen is on. Off by
-  default. See [Force notifications](#force-notifications).
+- **Notify even screen is on** — ring the phone even when the screen is on. Off
+  by default. See [Notify even screen is on](#notify-even-screen-is-on).
 
 ### While it runs
 
 Click the cup again:
 
 ```text
-Claude Notifyer Manager — Active
+Claude Notifier Manager — Active
 Notifications: 🔕 off — screen is on
 Remaining: 3h 42m 10s
 
-☐ Force notifications
+☐ Notify even screen is on
 
 Turn Display Off Now
 Stop
@@ -303,7 +309,7 @@ every time you look at it. That is correct: you can only read the menu when the
 screen is on, and the screen being on is what keeps the phone quiet. It turns to
 🔔 **on** a moment after you walk away.
 
-- **Force notifications** — ring even with the screen on. Works right away.
+- **Notify even screen is on** — ring even with the screen on. Works right away.
 - **Turn Display Off Now** — turns the screen off. Does not change the time.
 - **Stop** — ends it now.
 
@@ -315,7 +321,7 @@ This is where you put your Telegram or Pushover credentials. It replaces the two
 old shell scripts.
 
 ```text
-┌ Claude Notifyer Manager Settings ─────┐
+┌ Claude Notifier Manager Settings ─────┐
 │  Provider:  [ Telegram | Pushover ]   │
 │                                       │
 │  Bot token:  [__________________]     │
@@ -334,7 +340,7 @@ in. Press **Save**.
 
 **Pushover** — paste your user key and application API token. Press **Save**.
 
-**Send test** runs your real `~/.claude/hooks/notifyer.sh`. It is not a copy of
+**Send test** runs your real `~/.claude/hooks/notifier.sh`. It is not a copy of
 the send code, it is the same script Claude Code runs. If your phone buzzes, the
 whole chain works.
 
@@ -353,6 +359,25 @@ quiet. See [When the time reaches 0](#when-the-time-reaches-0).
 Stop, time up, and Quit all turn the phone notifications off. The app never
 leaves them on.
 
+### Quit from the terminal
+
+You do not need the mouse. This does the same as **Quit** in the menu:
+
+```bash
+pkill -x ClaudeNotifierManager
+```
+
+The app catches the signal, stops `caffeinate`, and turns the phone
+notifications off. `kill <pid>` and closing the terminal that started it work
+the same way.
+
+Useful in a script, or before `./install.sh`, which will not replace the app
+while it is running.
+
+> ⚠️ Do not use `kill -9`. No app can catch it, so nothing is cleaned up and
+> your phone keeps ringing. Open the app again to fix it. See
+> [If the app goes away](#if-the-app-goes-away).
+
 ## 📁 Files
 
 ```text
@@ -364,7 +389,7 @@ app/
 ├── install.sh                copies the app to ~/Applications
 ├── .gitignore                hides build leftovers from git
 │
-├── Sources/ClaudeNotifyerManager/
+├── Sources/ClaudeNotifierManager/
 │   ├── main.swift                    starts the app
 │   ├── AppDelegate.swift             startup and shutdown
 │   ├── StatusBarController.swift     the cup icon and the menu
@@ -374,7 +399,7 @@ app/
 │   ├── SettingsWindowController.swift  the Settings window
 │   ├── Keychain.swift                saves secrets with /usr/bin/security
 │   ├── TelegramAPI.swift             gets your chat ID from Telegram
-│   └── NotifierHook.swift            finds and runs ~/.claude/hooks/notifyer.sh
+│   └── NotifierHook.swift            finds and runs ~/.claude/hooks/notifier.sh
 │
-└── Claude Notifyer Manager.app/   the built app, saved in git so you need not build
+└── Claude Notifier Manager.app/   the built app, saved in git so you need not build
 ```

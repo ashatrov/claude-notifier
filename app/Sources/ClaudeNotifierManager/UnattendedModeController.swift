@@ -81,7 +81,7 @@ final class UnattendedModeController {
         do {
             try process.run()
         } catch {
-            NSLog("claude-notifyer-manager: could not launch caffeinate: \(error)")
+            NSLog("claude-notifier-manager: could not launch caffeinate: \(error)")
             return
         }
 
@@ -95,7 +95,7 @@ final class UnattendedModeController {
         // the Mac awake after Stop. caffeinate alone owns sleep prevention.
         activity = ProcessInfo.processInfo.beginActivity(
             options: .userInitiatedAllowingIdleSystemSleep,
-            reason: "Claude Notifyer Manager unattended session"
+            reason: "Claude Notifier Manager unattended session"
         )
         // So macOS cannot kill us without running applicationWillTerminate,
         // which is what guarantees `enabled` is never left set.
@@ -177,7 +177,7 @@ final class UnattendedModeController {
         do {
             try process.run()
         } catch {
-            NSLog("claude-notifyer-manager: could not run pmset displaysleepnow: \(error)")
+            NSLog("claude-notifier-manager: could not run pmset displaysleepnow: \(error)")
         }
     }
 }

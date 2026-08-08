@@ -9,12 +9,12 @@ Sub-agent events are ignored.
 - `notify-pushover.sh` — Pushover notifier
 - `notify-telegram.sh` — Telegram notifier
 - `claude-settings-file-part.json` — Claude Code hooks
-- `app/` — Claude Notifyer Manager menu bar app (credentials live in its Settings)
+- `app/` — Claude Notifier Manager menu bar app (credentials live in its Settings)
 
 Claude Code always calls:
 
 ```text
-~/.claude/hooks/notifyer.sh
+~/.claude/hooks/notifier.sh
 ```
 
 Choose a notifier and copy it with this name.
@@ -34,7 +34,7 @@ Every notification uses the same shape — a bold headline naming the project,
 then the detail:
 
 ```text
-✅ claude-notifyer: Claude finished
+✅ claude-notifier: Claude finished
 Claude has finished and is waiting for you.
 ```
 
@@ -49,39 +49,15 @@ field, which its clients already render bold.
 brew install jq
 ```
 
-### 2. Install the notifier
-
-```bash
-mkdir -p ~/.claude/hooks
-```
-
-For Pushover:
-
-```bash
-cp notify-pushover.sh ~/.claude/hooks/notifyer.sh
-```
-
-For Telegram:
-
-```bash
-cp notify-telegram.sh ~/.claude/hooks/notifyer.sh
-```
-
-Then:
-
-```bash
-chmod 700 ~/.claude/hooks/notifyer.sh
-```
-
-### 3. Install the app
+### 2. Install the app
 
 ```bash
 cd app
 ./install.sh
-open ~/Applications/"Claude Notifyer Manager.app"
+open ~/Applications/"Claude Notifier Manager.app"
 ```
 
-### 4. Add your credentials
+### 3. Add your credentials and install the notifier
 
 Click the cup in the menu bar, then **Settings…**
 
@@ -104,10 +80,22 @@ you. Press **Save**.
 Both are stored in the macOS Keychain, in the same items the notifier scripts
 read.
 
-Then press **Send test**. It runs your real `~/.claude/hooks/notifyer.sh`, so if
-your phone buzzes, the whole chain works.
+Then press **Install** to copy that provider's script to
+`~/.claude/hooks/notifier.sh`. Both scripts ship inside the app bundle, so this
+needs nothing from the repo.
 
-### 5. Configure Claude Code
+Finally press **Send test**. It runs your real `~/.claude/hooks/notifier.sh`, so
+if your phone buzzes, the whole chain works.
+
+> 📝 Prefer to do it by hand, or not using the app?
+>
+> ```bash
+> mkdir -p ~/.claude/hooks
+> cp notify-telegram.sh ~/.claude/hooks/notifier.sh   # or notify-pushover.sh
+> chmod 700 ~/.claude/hooks/notifier.sh
+> ```
+
+### 4. Configure Claude Code
 
 Merge the `hooks` from:
 
@@ -125,7 +113,7 @@ into:
 >
 > If an event already exists, keep it and add the notifier entry next to it.
 
-### 6. Verify
+### 5. Verify
 
 Start Claude Code and run:
 
@@ -140,7 +128,7 @@ Check that the hooks are registered.
 Every notifier starts with the same gate:
 
 ```bash
-ENABLED="$(defaults read com.ashatrov.claude-notifyer enabled 2>/dev/null || echo 0)"
+ENABLED="$(defaults read com.ashatrov.claude-notifier enabled 2>/dev/null || echo 0)"
 
 [[ "$ENABLED" == "1" ]] || exit 0
 ```
@@ -151,15 +139,15 @@ only want your phone buzzing when you are away from the Mac.
 Set it by hand with:
 
 ```bash
-defaults write com.ashatrov.claude-notifyer enabled -bool true
-defaults write com.ashatrov.claude-notifyer enabled -bool false
+defaults write com.ashatrov.claude-notifier enabled -bool true
+defaults write com.ashatrov.claude-notifier enabled -bool false
 ```
 
 Or let the menu bar app manage it for you.
 
 ## ☕ Menu bar app
 
-`app/` holds **Claude Notifyer Manager**, a small macOS menu bar app for leaving Claude
+`app/` holds **Claude Notifier Manager**, a small macOS menu bar app for leaving Claude
 Code running unattended. While a session is active it:
 
 - runs `caffeinate -i`, so the Mac will not idle-sleep;
@@ -182,7 +170,7 @@ The built bundle is committed, so no toolchain is required:
 ```bash
 cd app
 ./install.sh
-open ~/Applications/"Claude Notifyer Manager.app"
+open ~/Applications/"Claude Notifier Manager.app"
 ```
 
 To rebuild after changing the Swift source (needs the Swift toolchain from
@@ -195,7 +183,7 @@ ARCHS="arm64 x86_64" ./build.sh   # universal, also runs on Intel Macs
 
 ### Use
 
-Click the cup in the menu bar and pick a duration — 1, 2, 4, 8, 10 hours, or
+Click the cup in the menu bar and pick a duration — 1, 2, 4, 8, 12 hours, or
 `Custom…` for anything else, decimals included. The icon fills in while a
 session is active, and the menu shows the time remaining.
 
@@ -211,17 +199,37 @@ it set.
 
 ## 🔄 Switch provider
 
-Replace only `notifyer.sh`.
+Open **Settings…**, pick the other provider, press **Switch to …**. That is the
+whole thing — `~/.claude/settings.json` never changes.
 
-Example:
+Both providers' credentials can live in the Keychain at once. Only the installed
+`notifier.sh` decides which is used, and Settings shows which one that is.
 
-```bash
-cp notify-telegram.sh ~/.claude/hooks/notifyer.sh
-chmod 700 ~/.claude/hooks/notifyer.sh
+## 🩺 How the app knows what is installed
+
+Each script carries a marker on its second line:
+
+```zsh
+# claude-notifier: telegram
 ```
 
-No change to `~/.claude/settings.json` is needed.
+That says which provider it is. To tell a current copy from a stale one the app
+compares the installed file against the one in its bundle, byte for byte — so
+fixing a script and rebuilding is enough to mark every installed copy stale.
+There is no version number to bump.
 
-Then open **Settings…** in the app and save that provider's credentials. Both
-providers' credentials can live in the Keychain at once — only the installed
-`notifyer.sh` decides which is used. Settings shows which one that is.
+What Settings shows, and what the button then offers:
+
+| On disk | Button |
+| --- | --- |
+| nothing | **Install** |
+| same provider, same bytes | **Installed**, disabled |
+| same provider, older copy | **Update** |
+| the other provider | **Switch to …** |
+| no marker, not ours | **Replace…**, after confirming |
+
+The menu bar stays quiet unless something needs attention, in which case it
+grows one `⚠︎` row that opens Settings.
+
+A script edited by hand still counts as "ours" if the marker survives, so the
+app will offer to overwrite your edits. Rename the marker to keep them.

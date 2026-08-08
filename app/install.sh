@@ -3,8 +3,8 @@ set -euo pipefail
 
 cd "${0:A:h}"
 
-APP_NAME="Claude Notifyer Manager"
-EXECUTABLE="ClaudeNotifyerManager"
+APP_NAME="Claude Notifier Manager"
+EXECUTABLE="ClaudeNotifierManager"
 BUNDLE="${APP_NAME}.app"
 DEST="${HOME}/Applications"
 

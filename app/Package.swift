@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "ClaudeNotifyerManager",
+    name: "ClaudeNotifierManager",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "ClaudeNotifyerManager",
-            path: "Sources/ClaudeNotifyerManager"
+            name: "ClaudeNotifierManager",
+            path: "Sources/ClaudeNotifierManager"
         )
     ]
 )

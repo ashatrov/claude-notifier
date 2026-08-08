@@ -4,67 +4,44 @@
       {
         "matcher": "AskUserQuestion",
         "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/notifyer.sh question"
-          }
+          { "type": "command", "command": "$HOME/.claude/hooks/notifier.sh question" }
         ]
       }
     ],
-
     "PermissionRequest": [
       {
         "matcher": "^(?!AskUserQuestion$)",
         "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/notifyer.sh permission"
-          }
+          { "type": "command", "command": "$HOME/.claude/hooks/notifier.sh permission" }
         ]
       }
     ],
-
     "Elicitation": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/notifyer.sh elicitation"
-          }
+          { "type": "command", "command": "$HOME/.claude/hooks/notifier.sh elicitation" }
         ]
       }
     ],
-
     "Notification": [
       {
         "matcher": "agent_needs_input",
         "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/notifyer.sh background_input"
-          }
+          { "type": "command", "command": "$HOME/.claude/hooks/notifier.sh background_input" }
         ]
       }
     ],
-
     "StopFailure": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/notifyer.sh failure"
-          }
+          { "type": "command", "command": "$HOME/.claude/hooks/notifier.sh failure" }
         ]
       }
     ],
-
     "Stop": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/notifyer.sh done"
-          }
+          { "type": "command", "command": "$HOME/.claude/hooks/notifier.sh done" }
         ]
       }
     ]
