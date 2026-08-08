@@ -49,6 +49,7 @@ APP_TOKEN="$(
 
 case "$EVENT" in
     question)
+        EMOJI="❓"
         TITLE="Claude needs input"
         MESSAGE="Claude has a question."
         PRIORITY=1
@@ -57,6 +58,7 @@ case "$EVENT" in
     permission)
         TOOL="$(jq -r '.tool_name // empty' <<< "$INPUT")"
 
+        EMOJI="🔐"
         TITLE="Claude needs permission"
 
         if [[ -n "$TOOL" ]]; then
@@ -71,6 +73,7 @@ case "$EVENT" in
     elicitation)
         SERVER="$(jq -r '.mcp_server_name // empty' <<< "$INPUT")"
 
+        EMOJI="🧩"
         TITLE="Claude needs input"
 
         if [[ -n "$SERVER" ]]; then
@@ -83,6 +86,7 @@ case "$EVENT" in
         ;;
 
     background_input)
+        EMOJI="⏸️"
         TITLE="Claude needs input"
         MESSAGE="A background Claude session is waiting for your input."
         PRIORITY=1
@@ -91,6 +95,7 @@ case "$EVENT" in
     failure)
         ERROR="$(jq -r '.error // "unknown"' <<< "$INPUT")"
 
+        EMOJI="⚠️"
         TITLE="Claude stopped"
         MESSAGE="Claude stopped because of an API error: $ERROR"
         PRIORITY=1
@@ -108,6 +113,7 @@ case "$EVENT" in
             exit 0
         fi
 
+        EMOJI="✅"
         TITLE="Claude finished"
         MESSAGE="Claude has finished and is waiting for you."
         PRIORITY=0
@@ -118,6 +124,8 @@ case "$EVENT" in
         ;;
 esac
 
+# Pushover renders the title as the bold first line, so the headline goes
+# there and the body stays plain.
 curl \
     --silent \
     --show-error \
@@ -126,7 +134,7 @@ curl \
     --max-time 8 \
     -F "token=$APP_TOKEN" \
     -F "user=$USER_KEY" \
-    -F "title=$TITLE · $PROJECT" \
+    -F "title=$EMOJI $PROJECT: $TITLE" \
     -F "message=$MESSAGE" \
     -F "priority=$PRIORITY" \
     "https://api.pushover.net/1/messages.json" \

@@ -49,6 +49,7 @@ CHAT_ID="$(
 
 case "$EVENT" in
     question)
+        EMOJI="❓"
         TITLE="Claude needs input"
         MESSAGE="Claude has a question."
         PRIORITY=1
@@ -57,6 +58,7 @@ case "$EVENT" in
     permission)
         TOOL="$(jq -r '.tool_name // empty' <<< "$INPUT")"
 
+        EMOJI="🔐"
         TITLE="Claude needs permission"
 
         if [[ -n "$TOOL" ]]; then
@@ -71,6 +73,7 @@ case "$EVENT" in
     elicitation)
         SERVER="$(jq -r '.mcp_server_name // empty' <<< "$INPUT")"
 
+        EMOJI="🧩"
         TITLE="Claude needs input"
 
         if [[ -n "$SERVER" ]]; then
@@ -83,6 +86,7 @@ case "$EVENT" in
         ;;
 
     background_input)
+        EMOJI="⏸️"
         TITLE="Claude needs input"
         MESSAGE="A background Claude session is waiting for your input."
         PRIORITY=1
@@ -91,6 +95,7 @@ case "$EVENT" in
     failure)
         ERROR="$(jq -r '.error // "unknown"' <<< "$INPUT")"
 
+        EMOJI="⚠️"
         TITLE="Claude stopped"
         MESSAGE="Claude stopped because of an API error: $ERROR"
         PRIORITY=1
@@ -108,6 +113,7 @@ case "$EVENT" in
             exit 0
         fi
 
+        EMOJI="✅"
         TITLE="Claude finished"
         MESSAGE="Claude has finished and is waiting for you."
         PRIORITY=0
@@ -118,6 +124,16 @@ case "$EVENT" in
         ;;
 esac
 
+# The headline is sent as HTML so it renders bold, which means every
+# interpolated value has to be escaped first.
+html_escape() {
+    local s=$1
+    s=${s//'&'/'&amp;'}
+    s=${s//'<'/'&lt;'}
+    s=${s//'>'/'&gt;'}
+    print -r -- "$s"
+}
+
 curl \
     --silent \
     --show-error \
@@ -126,9 +142,9 @@ curl \
     --max-time 8 \
     --request POST \
     --data-urlencode "chat_id=$CHAT_ID" \
-    --data-urlencode "text=$TITLE · $PROJECT
-
-$MESSAGE" \
+    --data-urlencode "parse_mode=HTML" \
+    --data-urlencode "text=<b>$EMOJI $(html_escape "$PROJECT"): $(html_escape "$TITLE")</b>
+$(html_escape "$MESSAGE")" \
     "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
     >/dev/null 2>&1
 

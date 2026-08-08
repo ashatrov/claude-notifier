@@ -30,6 +30,17 @@ You get a notification when the main Claude agent:
 - ⚠️ stops because of an API error
 - ✅ finishes and waits for you
 
+Every notification uses the same shape — a bold headline naming the project,
+then the detail:
+
+```text
+✅ claude-notifyer: Claude finished
+Claude has finished and is waiting for you.
+```
+
+Telegram gets it as one HTML message; Pushover puts the headline in the title
+field, which its clients already render bold.
+
 ## 🛠️ Setup
 
 ### 1. Install dependency
