@@ -28,6 +28,10 @@ The screen rule is the whole idea. You are away, so the screen is off, so your
 phone rings. You come back and touch the Mac, the screen wakes, and your phone
 goes quiet.
 
+That is **Auto**, the default. You can also make the phone ring for the whole
+session whatever the screen is doing, or mute it entirely — see
+[Notify: On, Auto, Off](#notify-on-auto-off).
+
 Waking the screen does **not** end the session. The Mac stays awake until the
 time runs out or you press Stop.
 
@@ -65,9 +69,10 @@ The app writes it. The scripts read it.
                     ↓
       com.ashatrov.claude-notifier  enabled
 
-            screen off  →  enabled = 1
-            screen on   →  enabled = 0
-            forced      →  enabled = 1  (screen ignored)
+            Auto + screen off  →  enabled = 1
+            Auto + screen on   →  enabled = 0
+            On                 →  enabled = 1  (screen ignored)
+            Off                →  enabled = 0  (muted)
 
 
         ── the script reads the flag ──
@@ -100,6 +105,8 @@ The app writes it. The scripts read it.
 
 `caffeinate` is on while a session runs. It keeps the Mac awake.
 
+This table is for **Auto**, the default mode.
+
 | `caffeinate` | Screen | Phone notifications |
 |:---|:---|:---|
 | off | on | 🔕 off |
@@ -110,7 +117,7 @@ The app writes it. The scripts read it.
 Only one row rings. Both things must be true: a session is running **and** the
 screen is off.
 
-Unless you force it. See below.
+Unless you change the mode. See below.
 
 The last two rows are the ones you move between all day. You walk away, the
 screen sleeps, your phone rings. You come back, the screen wakes, your phone
@@ -119,38 +126,57 @@ goes quiet.
 The screen never changes the first column. Waking the screen does not stop
 `caffeinate`. The Mac stays awake until the time is up or you press Stop.
 
-### Notify even screen is on
+### Notify: On, Auto, Off
 
-Sometimes you want the phone to ring while you are still at the Mac. Maybe you
-are reading, or in a meeting, and the Mac is on the desk next to you.
+The screen rule is not always what you want. Sometimes you want the phone to
+ring while you are still at the Mac — you are reading, or in a meeting, and the
+Mac is on the desk next to you. Sometimes you want the Mac kept awake and the
+phone left alone.
 
-Tick **Notify even screen is on** in the menu. It skips the screen rule.
-
-| `caffeinate` | Force | Screen | Phone notifications |
-|:---|:---|:---|:---|
-| on | off | on | 🔕 off |
-| on | off | off | 🔔 on |
-| on | **on** | on | 🔔 **on** |
-| on | **on** | off | 🔔 **on** |
-| off | on | any | 🔕 off |
-
-Look at the last row. **Force still needs a session.** With no session the phone
-stays quiet, no matter what. Force is not a way to turn the phone on by itself.
-
-You can tick it before you start, or while a session runs. It works right away —
-you do not have to wait for the screen.
-
-The top line of the menu then says:
+The menu has a three-way switch for exactly this:
 
 ```text
-Notifications: 🔔 on — forced
+Notify  [ On | Auto | Off ]
 ```
 
-So you always know why your phone is ringing.
+| Mode | What it does |
+|:---|:---|
+| **On** | Ring for the whole session. The screen is ignored. |
+| **Auto** | Ring only while the screen is off. The default, and the rule above. |
+| **Off** | Never ring. The Mac still stays awake. |
 
-> 📝 Force stays ticked until you untick it. It is remembered after you close
-> the app. Untick it when you go back to normal work, or your phone will ring
-> every time you start a session.
+The full picture:
+
+| `caffeinate` | Mode | Screen | Phone notifications |
+|:---|:---|:---|:---|
+| on | Auto | on | 🔕 off |
+| on | Auto | off | 🔔 on |
+| on | **On** | on | 🔔 **on** |
+| on | **On** | off | 🔔 **on** |
+| on | **Off** | any | 🔕 **off** |
+| off | any | any | 🔕 off |
+
+Look at the last row. **Every mode still needs a session.** With no session the
+phone stays quiet, whatever the switch says. On is not a way to turn the phone
+on by itself.
+
+You can move the switch before you start, or while a session runs. It works
+right away — you do not have to wait for the screen. The menu stays open so you
+can see the top line change:
+
+```text
+Notifications: 🔔 on — always
+Notifications: 🔔 on — screen is off
+Notifications: 🔕 off — screen is on
+Notifications: 🔕 off — muted
+```
+
+So you always know why your phone is ringing, or why it is not.
+
+> 📝 The switch is remembered after you close the app. Put it back to **Auto**
+> when you go back to normal work — left on **On** your phone rings every time
+> you start a session, and left on **Off** it never rings at all. Nothing in the
+> menu bar shows that it is muted; you have to open the menu to see it.
 
 ### When the time reaches 0
 
@@ -297,12 +323,12 @@ Custom...
 
 `Custom...` takes any number. You can use `1.5` for one and a half hours.
 
-Below the times there are two tick boxes:
+Below the times there is a tick box and a switch:
 
 - **Turn display off after start** — the screen goes off right away, so you can
   just walk away. On by default.
-- **Notify even screen is on** — ring the phone even when the screen is on. Off
-  by default. See [Notify even screen is on](#notify-even-screen-is-on).
+- **Notify [ On | Auto | Off ]** — when the phone rings. **Auto** by default.
+  See [Notify: On, Auto, Off](#notify-on-auto-off).
 
 ### While it runs
 
@@ -313,7 +339,7 @@ Claude Notifier Manager — Active
 Notifications: 🔕 off — screen is on
 Remaining: 3h 42m 10s
 
-☐ Notify even screen is on
+Notify  [ On | Auto | Off ]
 
 Turn Display Off Now
 Stop
@@ -321,12 +347,13 @@ Stop
 
 The seconds count down while the menu is open.
 
-The top line tells you if your phone will ring right now. It says **off** almost
-every time you look at it. That is correct: you can only read the menu when the
-screen is on, and the screen being on is what keeps the phone quiet. It turns to
-🔔 **on** a moment after you walk away.
+The top line tells you if your phone will ring right now. On **Auto** it says
+**off** almost every time you look at it. That is correct: you can only read the
+menu when the screen is on, and the screen being on is what keeps the phone
+quiet. It turns to 🔔 **on** a moment after you walk away.
 
-- **Notify even screen is on** — ring even with the screen on. Works right away.
+- **Notify [ On | Auto | Off ]** — when the phone rings. Works right away, and
+  the menu stays open so you can see the top line follow.
 - **Turn Display Off Now** — turns the screen off. Does not change the time.
 - **Stop** — ends it now.
 
@@ -359,7 +386,9 @@ in. Press **Save**.
 
 **Send test** runs your real `~/.claude/hooks/notifier.sh`. It is not a copy of
 the send code, it is the same script Claude Code runs. If your phone buzzes, the
-whole chain works.
+whole chain works. It sends with no session running and even under `Off` — it
+passes `CLAUDE_NOTIFIER_TEST=1` to the script rather than touching `enabled`, so
+a test can neither be muted nor disturb a session that is already running.
 
 The line above the buttons tells you which notifier is installed and whether its
 credentials are saved.

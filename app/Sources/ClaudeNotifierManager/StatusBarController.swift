@@ -7,10 +7,32 @@ import AppKit
 final class StatusBarController: NSObject, NSMenuDelegate {
     private static let presetHours: [Double] = [1, 2, 4, 8, 12]
 
+    /// Segment order, and the only mapping between an index and a mode. Label
+    /// and tooltip travel with the mode so reordering here cannot leave a
+    /// segment reading "On" while acting as `.off`.
+    private static let modes: [(mode: Preferences.NotificationMode, label: String, tooltip: String)] = [
+        (.on, "On", "Notify for the whole session"),
+        (.auto, "Auto", "Notify only while the screen is off"),
+        (.off, "Off", "Never notify"),
+    ]
+
+    /// Where an ordinary menu item's *title* starts, measured from the left edge
+    /// of a custom item view. No API exposes it and it has moved between macOS
+    /// releases, so it is calibrated by eye against the rows above and below.
+    /// Keep it in this one place.
+    private static let menuTitleInset: CGFloat = 14
+
+    /// The gap after the "Notify" label and the padding after the control.
+    /// Named because the constraints and the explicit frame width below both
+    /// need them, and a frame that disagrees with the constraints either clips
+    /// the last segment or leaves dead menu background beside it.
+    private static let modeLabelGap: CGFloat = 8
+    private static let modeTrailingPadding: CGFloat = 12
+
     private let statusItem: NSStatusItem
     private let controller: UnattendedModeController
 
-    /// The two live rows, kept only while the menu is open so they can tick.
+    /// The live pieces, kept only while the menu is open so they can tick.
     private weak var notificationsItem: NSMenuItem?
     private weak var remainingItem: NSMenuItem?
     private var menuTimer: Timer?
@@ -59,6 +81,13 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     /// pass *after* this method returns and paints the gear regardless. The only
     /// reliable fix is to keep those words out of selector names, hence
     /// `showConfigWindow`.
+    ///
+    /// None of this reaches the notification mode row: a custom-view item has no
+    /// title and no action for that pass to key on, and the segmented control's
+    /// selector belongs to the control rather than to any menu item. The risk
+    /// there is the inverse one — a symbol on a *sibling* reserving the image
+    /// column would indent the neighbours while `menuTitleInset` stayed put — so
+    /// that row is kept alone in its own section in both menus.
     ///
     /// Rebuilt on every open, so the countdown starts from the real value rather
     /// than a cached one. Called before `menuWillOpen`.
@@ -124,8 +153,15 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             statusItem.menu?.cancelTracking()
             return
         }
-        notificationsItem?.title = Self.notificationsStatus()
+        refreshNotificationsLine()
         remainingItem?.title = "Remaining: \(Self.formatRemaining(controller.remaining))"
+    }
+
+    /// Shared by the once-a-second tick and by the mode control, which cannot
+    /// wait for the next tick — and in the inactive menu never gets one, since
+    /// `menuWillOpen` starts no timer there. A no-op when the row is absent.
+    private func refreshNotificationsLine() {
+        notificationsItem?.title = Self.notificationsStatus()
     }
 
     private func buildInactiveMenu(_ menu: NSMenu) {
@@ -145,8 +181,10 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         let toggle = add(menu, "Turn display off after start", #selector(toggleDisplayOff))
         toggle.state = Preferences.turnDisplayOffAfterStart ? .on : .off
 
-        let force = add(menu, "Notify even screen is on", #selector(toggleForceNotifications))
-        force.state = Preferences.forceNotifications ? .on : .off
+        // Its own section, so nothing else can ever reserve the image column
+        // here and indent the neighbours out from under `menuTitleInset`.
+        menu.addItem(.separator())
+        menu.addItem(makeNotificationModeItem())
     }
 
     private func buildActiveMenu(_ menu: NSMenu) {
@@ -155,8 +193,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         remainingItem = addHeader(menu, "Remaining: \(Self.formatRemaining(controller.remaining))")
         menu.addItem(.separator())
 
-        let force = add(menu, "Notify even screen is on", #selector(toggleForceNotifications))
-        force.state = Preferences.forceNotifications ? .on : .off
+        menu.addItem(makeNotificationModeItem())
 
         menu.addItem(.separator())
 
@@ -180,6 +217,86 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             item.image = nil
         }
         menu.addItem(item)
+        return item
+    }
+
+    /// The `Notify [ On | Auto | Off ]` row.
+    ///
+    /// A custom item view is sized from its *frame*, not from its constraints —
+    /// `NSMenu` runs no fitting pass — so the frame is set explicitly here from
+    /// the children's fitting sizes. Leaving it unset yields a zero-height row.
+    ///
+    /// The trailing constraint is `greaterThanOrEqualTo`, making that width a
+    /// minimum request: when a longer row widens the menu, the extra space lands
+    /// to the right of the control as plain menu background rather than
+    /// stretching the segments across the whole row.
+    private func makeNotificationModeItem() -> NSMenuItem {
+        let label = NSTextField(labelWithString: "Notify")
+        // 0 means the menu's own size, so this tracks the system menu font
+        // instead of hard-coding one. The default `labelColor` is what follows
+        // light/dark and Increase Contrast — never bake a colour in here.
+        label.font = NSFont.menuFont(ofSize: 0)
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let control = NSSegmentedControl(
+            labels: Self.modes.map(\.label),
+            trackingMode: .selectOne,
+            target: self,
+            action: #selector(notificationModeChanged(_:))
+        )
+        // controlSize resets the font, so it has to be set first.
+        control.controlSize = .small
+        control.font = NSFont.menuFont(ofSize: NSFont.smallSystemFontSize)
+        control.segmentStyle = .automatic
+        // The getter already falls back to `.auto`, so the lookup can only miss
+        // if a mode were left out of `modes` — select the first segment then.
+        control.selectedSegment = Self.modes.firstIndex { $0.mode == Preferences.notificationMode } ?? 0
+        control.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        control.translatesAutoresizingMaskIntoConstraints = false
+
+        // The row is invisible to type-select and arrow keys — inherent to view
+        // items — so the control has to carry its own description, and the
+        // tooltips replace what the old self-describing title used to say.
+        control.setAccessibilityLabel("Notify")
+        control.setAccessibilityHelp("On notifies for the whole session. "
+            + "Auto notifies only while the screen is off. Off never notifies.")
+        for (index, mode) in Self.modes.enumerated() {
+            control.setToolTip(mode.tooltip, forSegment: index)
+        }
+
+        let container = NSView()
+        container.addSubview(label)
+        container.addSubview(control)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor,
+                                           constant: Self.menuTitleInset),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            control.leadingAnchor.constraint(equalTo: label.trailingAnchor,
+                                             constant: Self.modeLabelGap),
+            control.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            container.trailingAnchor.constraint(greaterThanOrEqualTo: control.trailingAnchor,
+                                                constant: Self.modeTrailingPadding),
+        ])
+        container.layoutSubtreeIfNeeded()
+
+        let width = Self.menuTitleInset + label.fittingSize.width + Self.modeLabelGap
+            + control.fittingSize.width + Self.modeTrailingPadding
+        let height = max(control.fittingSize.height, label.fittingSize.height) + 4
+        container.frame = NSRect(x: 0, y: 0, width: width, height: height)
+        // The menu stretches the view to its own width; nothing else may move.
+        container.autoresizingMask = [.width]
+        // Otherwise VoiceOver announces an anonymous group, and the label just
+        // repeats what the control already says.
+        container.setAccessibilityElement(false)
+        label.setAccessibilityElement(false)
+
+        // Deliberately no target/action: a view item draws no title and no
+        // state, so the control is the only interactive thing in the row.
+        // Enabled because `autoenablesItems` is false and a disabled item's
+        // view is not documented to keep receiving mouse events.
+        let item = NSMenuItem()
+        item.view = container
+        item.isEnabled = true
         return item
     }
 
@@ -235,9 +352,19 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         Preferences.turnDisplayOffAfterStart.toggle()
     }
 
-    @objc private func toggleForceNotifications() {
+    /// The menu deliberately stays open: a three-way picker invites correction,
+    /// and the "Notifications:" line above is the feedback for the choice.
+    ///
+    /// `.selectOne` fires this again when the already-selected segment is
+    /// clicked. Harmless — the setter is idempotent and the controller dedupes
+    /// the write.
+    @objc private func notificationModeChanged(_ sender: NSSegmentedControl) {
+        guard Self.modes.indices.contains(sender.selectedSegment) else { return }
         // Via the controller, so an active session picks it up immediately.
-        controller.setForceNotifications(!Preferences.forceNotifications)
+        controller.setNotificationMode(Self.modes[sender.selectedSegment].mode)
+        // Synchronously: menu tracking blocks the default run loop mode, and a
+        // one-second lag after a deliberate click reads as a bug.
+        refreshNotificationsLine()
     }
 
     @objc private func turnDisplayOffNow() {
@@ -266,13 +393,24 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     // MARK: - Formatting
 
     /// Reports the flag the hook scripts actually read, with the reason next to
-    /// it. Reading the menu means a display is awake, so in practice this almost
+    /// it. Reading the menu means a display is awake, so in Auto this almost
     /// always shows "off" — the reason is what makes that reassuring rather than
-    /// alarming.
+    /// alarming. Under Off the reason is you, which is the whole point of
+    /// saying so: nothing else in the UI shows that the phone is muted.
+    ///
+    /// Mute is checked first for readability, not necessity: `.off` can never
+    /// reach `enabled == true`. Nothing raises that flag behind the mode's back
+    /// — the Test button signals the script through the environment instead of
+    /// borrowing it. There is deliberately no "no session" case: this line only ever renders
+    /// with a session running, and by then `start()` has already run the
+    /// monitor's first poll through `applyNotificationState()`.
     private static func notificationsStatus() -> String {
+        let mode = Preferences.notificationMode
+        if mode == .off { return "Notifications: 🔕 off — muted" }
+
         guard Preferences.enabled else { return "Notifications: 🔕 off — screen is on" }
-        return Preferences.forceNotifications
-            ? "Notifications: 🔔 on — forced"
+        return mode == .on
+            ? "Notifications: 🔔 on — always"
             : "Notifications: 🔔 on — screen is off"
     }
 

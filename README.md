@@ -145,6 +145,15 @@ defaults write com.ashatrov.claude-notifier enabled -bool true
 defaults write com.ashatrov.claude-notifier enabled -bool false
 ```
 
+There is one other way past the gate: `CLAUDE_NOTIFIER_TEST=1` in the
+environment makes the script send whatever the flag says. That is how the app's
+**Send test** button works — a test has to send even while muted, and the app
+must not borrow a flag that a running session owns.
+
+```bash
+echo '{"cwd":"'"$PWD"'"}' | CLAUDE_NOTIFIER_TEST=1 ~/.claude/hooks/notifier.sh done
+```
+
 Or let the menu bar app manage it for you.
 
 ## ☕ Menu bar app
@@ -161,6 +170,11 @@ Code running unattended. While a session is active it:
 The point of the display rule: notifications reach your phone while you are away,
 and go quiet the second you sit back down. Waking the screen never stops
 `caffeinate` — the session keeps running until it times out or you stop it.
+
+That display rule is the `Auto` mode of the menu's `Notify [ On | Auto | Off ]`
+switch, and it is the default. `On` holds `enabled` at `1` for the whole session
+whatever the display is doing; `Off` holds it at `0` and keeps the phone quiet
+while the Mac stays awake. No mode notifies without a session.
 
 The app never talks to Telegram or Pushover. It only owns the `enabled` flag,
 which is what keeps the providers interchangeable.
@@ -192,7 +206,9 @@ Click the cup in the menu bar and pick a duration — 1, 2, 4, 8, 12 hours, or
 session is active, and the menu shows the time remaining.
 
 `Turn display off after start` (on by default) runs `pmset displaysleepnow`
-right after starting, so you can walk away immediately. While active, the menu
+right after starting, so you can walk away immediately. `Notify [ On | Auto |
+Off ]` chooses when the phone rings, defaults to `Auto`, is remembered between
+launches, and applies immediately even mid-session. While active, the menu
 offers `Turn Display Off Now` — which does not change the timeout — and `Stop`.
 
 Stopping, timing out, and quitting all clear `enabled`. The app will not leave

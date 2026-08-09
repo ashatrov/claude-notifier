@@ -21,8 +21,8 @@ final class UnattendedModeController {
     private var isStoppingManually = false
 
     /// Last state the monitor reported. Remembered because the monitor only
-    /// reports *changes*, so toggling Force mid-session has nothing to read
-    /// otherwise.
+    /// reports *changes*, so switching the notification mode mid-session has
+    /// nothing to read otherwise.
     private var displaysAsleep = false
 
     /// Last value written to the preference, so repeated identical writes are
@@ -38,18 +38,21 @@ final class UnattendedModeController {
 
     // MARK: - Notification flag
 
-    /// The one rule: notify while a session is running and either the screen is
-    /// off or the user forced it on.
+    /// The one rule: a session must be running, and the mode must say yes for
+    /// the current screen state. Mute fails that second half unconditionally.
     private func applyNotificationState() {
-        let desired = isActive && (Preferences.forceNotifications || displaysAsleep)
+        let desired = isActive && Preferences.notificationMode.notifies(displaysAsleep: displaysAsleep)
         guard desired != appliedEnabled else { return }
         appliedEnabled = desired
         Preferences.enabled = desired
     }
 
     /// Takes effect immediately, mid-session included.
-    func setForceNotifications(_ force: Bool) {
-        Preferences.forceNotifications = force
+    ///
+    /// Mute deliberately leaves the display monitor running: switching back to
+    /// `.auto` mid-session has to have a current screen state to read.
+    func setNotificationMode(_ mode: Preferences.NotificationMode) {
+        Preferences.notificationMode = mode
         applyNotificationState()
     }
 
@@ -143,7 +146,7 @@ final class UnattendedModeController {
         session = nil
 
         // Unconditional, not routed through applyNotificationState: ending a
-        // session must clear the flag even if Force is left switched on.
+        // session must clear the flag even if the mode is On.
         displaysAsleep = false
         appliedEnabled = false
         Preferences.enabled = false

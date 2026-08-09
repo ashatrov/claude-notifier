@@ -1,9 +1,15 @@
 #!/bin/zsh
 # claude-notifier: pushover
 
-ENABLED="$(defaults read com.ashatrov.claude-notifier enabled 2>/dev/null || echo 0)"
+# The Test button in Claude Notifier Manager sets CLAUDE_NOTIFIER_TEST instead
+# of raising `enabled`: that flag belongs to the running session, and borrowing
+# it would race with a session starting or stopping mid-test and could leave
+# notifications switched on for good. A test also has to send while muted.
+if [[ "${CLAUDE_NOTIFIER_TEST:-}" != "1" ]]; then
+    ENABLED="$(defaults read com.ashatrov.claude-notifier enabled 2>/dev/null || echo 0)"
 
-[[ "$ENABLED" == "1" ]] || exit 0
+    [[ "$ENABLED" == "1" ]] || exit 0
+fi
 
 INPUT="$(cat)"
 EVENT="${1:-}"

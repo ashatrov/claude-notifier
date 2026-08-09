@@ -101,6 +101,10 @@ enum NotifierHook {
     /// First line of the marker comment every script this repo ships carries.
     private static let markerPrefix = "# claude-notifier:"
 
+    /// Tells the script this run is a test, so it sends whatever `enabled` says.
+    /// Must match the name the shipped scripts check.
+    private static let testEnvironmentKey = "CLAUDE_NOTIFIER_TEST"
+
     static let url = URL(fileURLWithPath: NSHomeDirectory())
         .appendingPathComponent(".claude/hooks/notifier.sh")
 
@@ -193,11 +197,9 @@ enum NotifierHook {
 
     /// Runs the real hook once.
     ///
-    /// The script's own gate is `enabled`, so it is raised for the duration and
-    /// put back afterwards. Note the notifier scripts always `exit 0` — by
-    /// design, so a broken notifier can never block Claude — which means a send
-    /// failure is invisible here. Everything checkable is checked up front
-    /// instead.
+    /// Note the notifier scripts always `exit 0` — by design, so a broken
+    /// notifier can never block Claude — which means a send failure is
+    /// invisible here. Everything checkable is checked up front instead.
     static func sendTest() throws {
         guard isInstalled else { throw HookError.notInstalled }
         guard FileManager.default.isExecutableFile(atPath: url.path) else { throw HookError.notExecutable }
@@ -208,13 +210,27 @@ enum NotifierHook {
         let missing = provider.requiredServices.filter { !Keychain.exists($0) }
         guard missing.isEmpty else { throw HookError.missingCredentials(provider, missing) }
 
-        let previouslyEnabled = Preferences.enabled
-        Preferences.enabled = true
-        defer { Preferences.enabled = previouslyEnabled }
-
         let process = Process()
         process.executableURL = url
         process.arguments = ["done"]
+
+        // A second way past the script's gate, rather than raising `enabled`
+        // for the duration of the send.
+        //
+        // `enabled` belongs to the running session: the controller derives it
+        // from the session and the screen, and this method blocks on
+        // `waitUntilExit()` for as long as the network takes. Borrowing the flag
+        // means a session that starts or stops inside that window has its write
+        // overwritten on the way out — leaving `enabled` set with no session,
+        // and every later Claude hook notifying the phone until the app is
+        // relaunched. Signalling out of band makes that unreachable.
+        //
+        // The notification mode is bypassed either way, deliberately: a test
+        // must still send under Off. Proving the chain works is exactly what you
+        // want when the phone has been muted.
+        var environment = ProcessInfo.processInfo.environment
+        environment[Self.testEnvironmentKey] = "1"
+        process.environment = environment
 
         let inPipe = Pipe()
         process.standardInput = inPipe
