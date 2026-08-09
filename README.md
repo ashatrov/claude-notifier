@@ -4,6 +4,12 @@ Send a phone notification when Claude Code needs your attention.
 
 Sub-agent events are ignored.
 
+<p align="left">
+  <img src="app/docs/cnm-idle.jpg" alt="Menu bar app, idle — pick a duration" width="260" align="top">
+  <img src="app/docs/cnm-running.jpg" alt="Menu bar app, active session — time remaining and Notify mode" width="260" align="top">
+  <img src="app/docs/cnm-settings.jpg" alt="Settings — provider, credentials, and hook status" width="260" align="top">
+</p>
+
 ## 📁 Files
 
 - `notify-pushover.sh` — Pushover notifier
