@@ -124,6 +124,75 @@ case "$EVENT" in
         TITLE="Claude finished"
         MESSAGE="Claude has finished and is waiting for you."
         PRIORITY=0
+
+        # A roster of every live session, so the notification answers "am I
+        # free now?" rather than only "this one session stopped". An empty
+        # ROSTER — no `claude` on the hook's PATH — sends the plain message.
+        #
+        # A table because running text, <pre> included, wraps once a row is
+        # wider than the screen; a table scrolls sideways instead.
+        SESSION_ID="$(jq -r '.session_id // empty' <<< "$INPUT")"
+
+        ROSTER="$(
+            claude agents --json 2>/dev/null \
+            | jq -r --arg sid "$SESSION_ID" --arg home "$HOME" '
+                def pad2: tostring | if length < 2 then "0" + . else . end;
+
+                [
+                    .[] |
+                    ((now - (.startedAt / 1000)) / 60 | floor) as $m |
+                    {
+                        # This session is busy running the hook, so its own row
+                        # would otherwise contradict the headline.
+                        status: (if .sessionId == $sid then "✅"
+                                 elif .status == "idle" then "💤"
+                                 elif .status == "busy" then "🧠"
+                                 elif .status == "waiting" then "⏳"
+                                 else .status end),
+
+                        age: "\(($m / 60 | floor) | pad2)h\(($m % 60) | pad2)m",
+                        waiting: (.waitingFor // ""),
+                        session: .name,
+
+                        # The widest column, so it is worth the abbreviation.
+                        # The $home == "" guard stops an unset $HOME from
+                        # matching every absolute path.
+                        directory: (.cwd |
+                            if $home == "" then .
+                            elif . == $home then "~"
+                            elif startswith($home + "/") then "~" + ltrimstr($home)
+                            else . end),
+                    }
+                ] as $rows |
+
+                # A column of empty cells would still claim width.
+                ($rows | any(.waiting != "")) as $blocked |
+
+                if ($rows | length) == 0 then
+                    ""
+                else
+                    "<table>"
+                    # The blank heading is deliberate: a word over the emoji
+                    # widens the narrowest column and pushes the rest off-screen.
+                    + "<tr><th></th>"
+                    + "<th>Age</th>"
+                    + (if $blocked then "<th>Waiting for</th>" else "" end)
+                    + "<th>Session</th>"
+                    + "<th>Directory</th>"
+                    + "</tr>"
+                    + ($rows | map(
+                        "<tr>"
+                        + "<td>\(.status)</td>"
+                        + "<td>\(.age)</td>"
+                        + (if $blocked then "<td>\(.waiting | @html)</td>" else "" end)
+                        + "<td>\(.session | @html)</td>"
+                        + "<td>\(.directory | @html)</td>"
+                        + "</tr>"
+                      ) | join(""))
+                    + "</table>"
+                end
+            ' 2>/dev/null
+        )"
         ;;
 
     *)
@@ -141,18 +210,47 @@ html_escape() {
     print -r -- "$s"
 }
 
-curl \
-    --silent \
-    --show-error \
-    --fail \
-    --connect-timeout 3 \
-    --max-time 8 \
-    --request POST \
-    --data-urlencode "chat_id=$CHAT_ID" \
-    --data-urlencode "parse_mode=HTML" \
-    --data-urlencode "text=<b>$EMOJI $(html_escape "$PROJECT"): $(html_escape "$TITLE")</b>
+HEADLINE="<b>$EMOJI $(html_escape "$PROJECT"): $(html_escape "$TITLE")</b>"
+
+if [[ -n "${ROSTER:-}" ]]; then
+    # The roster replaces MESSAGE rather than following it — it already says
+    # everything that line would have. sendRichMessage takes a document rather
+    # than form fields, hence the JSON body. ROSTER is markup, escaped by the
+    # jq that built it.
+    jq \
+        --null-input \
+        --arg chat_id "$CHAT_ID" \
+        --arg html "$HEADLINE
+$ROSTER" \
+        '{
+            chat_id: $chat_id,
+            rich_message: { html: $html, skip_entity_detection: true }
+        }' \
+    | curl \
+        --silent \
+        --show-error \
+        --fail \
+        --connect-timeout 3 \
+        --max-time 8 \
+        --request POST \
+        --header "Content-Type: application/json" \
+        --data-binary @- \
+        "https://api.telegram.org/bot${BOT_TOKEN}/sendRichMessage" \
+        >/dev/null 2>&1
+else
+    curl \
+        --silent \
+        --show-error \
+        --fail \
+        --connect-timeout 3 \
+        --max-time 8 \
+        --request POST \
+        --data-urlencode "chat_id=$CHAT_ID" \
+        --data-urlencode "parse_mode=HTML" \
+        --data-urlencode "text=$HEADLINE
 $(html_escape "$MESSAGE")" \
-    "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-    >/dev/null 2>&1
+        "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+        >/dev/null 2>&1
+fi
 
 exit 0
