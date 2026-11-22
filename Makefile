@@ -1,6 +1,6 @@
 APP := Claude Notifier Manager
 
-.PHONY: build build-universal icon install run clean
+.PHONY: build build-universal icon install run test clean
 
 # Build the .app bundle (native arch)
 build:
@@ -21,6 +21,12 @@ install:
 # Launch the installed app
 run:
 	open "$(HOME)/Applications/$(APP).app"
+
+# Compile HookRegistration with its tests and run them (no Xcode needed)
+test:
+	mkdir -p app/.build
+	swiftc app/Sources/ClaudeNotifierManager/HookRegistration.swift app/Tests/HookRegistrationTests/main.swift -o app/.build/hook-registration-tests
+	./app/.build/hook-registration-tests
 
 # Remove SwiftPM build products
 clean:
