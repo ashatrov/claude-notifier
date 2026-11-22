@@ -94,7 +94,7 @@ check("disableAllHooksFalse", s(settings(events, extra: "\"disableAllHooks\": fa
 
 // warningText
 check("warningText registered", Status.registered.warning == nil)
-check("warningText all missing", Status.missing(events).warning == "⚠︎ No hooks in ~/.claude/settings.json")
+check("warningText all missing", Status.missing(events).warning == "⚠︎ No notifier hooks in ~/.claude/settings.json")
 check(
     "warningText some missing",
     Status.missing(["Elicitation", "Stop"]).warning

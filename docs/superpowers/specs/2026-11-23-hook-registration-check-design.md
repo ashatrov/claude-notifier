@@ -51,7 +51,7 @@ Where it shows:
 
 - **Settings** status line (`refreshHookStatus`): append
   `⚠︎ Not registered in ~/.claude/settings.json: Stop, …` — or
-  `⚠︎ No hooks in ~/.claude/settings.json` when all six are missing.
+  `⚠︎ No notifier hooks in ~/.claude/settings.json` when all six are missing.
 - **Menu bar** (`addHookWarning`): when the script is current but hooks are
   missing, show `⚠︎ Register hooks…`, opening Settings. Script problems keep
   priority (one warning row at most).

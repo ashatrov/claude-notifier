@@ -275,7 +275,7 @@ so are matchers and arguments.
 | --- | --- |
 | all six registered | nothing extra |
 | some missing | `⚠︎ Not registered in ~/.claude/settings.json: Stop, …` |
-| none, or no file | `⚠︎ No hooks in ~/.claude/settings.json` |
+| none, or no file | `⚠︎ No notifier hooks in ~/.claude/settings.json` |
 | `"disableAllHooks": true` | `⚠︎ All hooks disabled in ~/.claude/settings.json` |
 | not valid JSON | `⚠︎ Could not read ~/.claude/settings.json` |
 

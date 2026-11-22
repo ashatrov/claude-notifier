@@ -35,7 +35,7 @@ enum HookRegistration {
             case .registered:
                 return nil
             case .missing(let missing) where missing == HookRegistration.events:
-                return "⚠︎ No hooks in ~/.claude/settings.json"
+                return "⚠︎ No notifier hooks in ~/.claude/settings.json"
             case .missing(let missing):
                 return "⚠︎ Not registered in ~/.claude/settings.json: \(missing.joined(separator: ", "))"
             case .allHooksDisabled:
