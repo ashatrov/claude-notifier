@@ -229,6 +229,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         // without a word, so nothing else here would ever hint at the cause.
         if !jqAvailable { parts.append("⚠︎ jq not found — run: brew install jq") }
 
+        // A script on disk is only half the chain: Claude Code also has to be
+        // told to run it, and Send test cannot tell — it runs the script itself.
+        if let warning = HookRegistration.current().warning { parts.append(warning) }
+
         hookLabel.stringValue = parts.joined(separator: " · ")
 
         installButton.isEnabled = true

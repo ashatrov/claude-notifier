@@ -200,6 +200,7 @@ Xcode Command Line Tools):
 ```bash
 make build             # arm64
 make build-universal   # universal, also runs on Intel Macs
+make test              # settings.json hook check, no Xcode needed
 ```
 
 `make install` never builds — it ships the bundle that is checked out. Run
@@ -259,3 +260,26 @@ grows one `⚠︎` row that opens Settings.
 
 A script edited by hand still counts as "ours" if the marker survives, so the
 app will offer to overwrite your edits. Rename the marker to keep them.
+
+### Are the hooks registered?
+
+A script on disk does nothing until Claude Code is told to run it, and **Send
+test** cannot tell you that — it runs the script itself. So Settings also reads
+`~/.claude/settings.json` and checks that each of the six events
+(`PreToolUse`, `PermissionRequest`, `Elicitation`, `Notification`,
+`StopFailure`, `Stop`) has at least one hook whose command contains
+`.claude/hooks/notifier.sh`. Hooks from other plugins and apps are ignored, and
+so are matchers and arguments.
+
+| `settings.json` | Settings says |
+| --- | --- |
+| all six registered | nothing extra |
+| some missing | `⚠︎ Not registered in ~/.claude/settings.json: Stop, …` |
+| none, or no file | `⚠︎ No hooks in ~/.claude/settings.json` |
+| `"disableAllHooks": true` | `⚠︎ All hooks disabled in ~/.claude/settings.json` |
+| not valid JSON | `⚠︎ Could not read ~/.claude/settings.json` |
+
+When the script is fine but the hooks are not, the menu's `⚠︎` row reads
+`Register hooks…`. The app never writes `settings.json` — merge the hooks from
+`claude-settings-file-part.json` by hand, as in
+[step 4 of Setup](#4-configure-claude-code).

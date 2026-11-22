@@ -107,16 +107,21 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         add(menu, "Quit Claude Notifier Manager", #selector(quit), key: "q")
     }
 
-    /// Says something only when the notifier needs attention. A hook that is
-    /// installed and current adds no row at all — the menu stays as short as it
-    /// has always been.
+    /// Says something only when the notifier needs attention. A script that is
+    /// current and registered in `~/.claude/settings.json` adds no row at all —
+    /// the menu stays as short as it has always been.
+    ///
+    /// One row at most, and script problems come first: registering hooks for a
+    /// script that is missing or stale would not get anything sent either.
     ///
     /// Opens Settings rather than installing from here: the install button
     /// belongs next to the provider picker that chooses what gets installed.
     private func addHookWarning(_ menu: NSMenu) {
         let title: String
         switch NotifierHook.state() {
-        case .current: return
+        case .current:
+            guard HookRegistration.current() != .registered else { return }
+            title = "⚠︎ Register hooks…"
         case .notInstalled: title = "⚠︎ Install notifier…"
         case .outdated: title = "⚠︎ Update notifier…"
         case .foreign: title = "⚠︎ Unrecognised notifier…"
